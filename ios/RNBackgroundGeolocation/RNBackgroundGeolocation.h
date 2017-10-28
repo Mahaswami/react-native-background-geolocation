@@ -24,10 +24,12 @@
 #import <React/RCTInvalidating.h>
 #endif
 
-@interface RNBackgroundGeolocation : RCTEventEmitter <RCTInvalidating>
+@interface RNBackgroundGeolocation : RCTEventEmitter <RCTInvalidating, CLLocationManagerDelegate>
 
 @property (nonatomic, strong) TSLocationManager* locationManager;
 @property (nonatomic, strong) NSDictionary* syncCallback;
+
+@property (nonatomic, strong) CLFloor* clFloor;
 
 @end
 

@@ -33,10 +33,11 @@ static NSString *const EVENT_HEARTBEAT = @"heartbeat";
 
 
 @implementation RNBackgroundGeolocation {
-    
+    CLLocationManager *clLocationManager;
+
 }
 
-@synthesize syncCallback, locationManager;
+@synthesize syncCallback, locationManager, clFloor;
 
 RCT_EXPORT_MODULE();
 
@@ -45,6 +46,13 @@ RCT_EXPORT_MODULE();
  */
 -(instancetype)init
 {
+    if ([CLLocationManager locationServicesEnabled]) {
+        clLocationManager = [[CLLocationManager alloc] init];
+        clLocationManager.delegate = self;
+        clLocationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        [clLocationManager startUpdatingLocation];
+    }
+
     self = [super init];
     if (self) {
         locationManager = [TSLocationManager sharedInstance];
@@ -201,6 +209,13 @@ RCT_EXPORT_METHOD(finish:(int)taskId)
 RCT_EXPORT_METHOD(getCurrentPosition:(NSDictionary*)options success:(RCTResponseSenderBlock)success failure:(RCTResponseSenderBlock)failure)
 {
     [locationManager getCurrentPosition:options success:^(NSDictionary* locationData) {
+        if (self.clFloor) {
+            NSNumber *floorlevelValue = [NSNumber numberWithInteger:self.clFloor.level];
+            [locationData setValue:floorlevelValue forKey:@"floor"];
+        } else {
+            [locationData setValue:@"" forKey:@"floor"];
+        }
+
         tsRunOnMainQueueWithoutDeadlocking(^{
             success(@[locationData]);
         });
@@ -221,6 +236,16 @@ RCT_EXPORT_METHOD(watchPosition:(NSDictionary*)options success:(RCTResponseSende
 
     }];
     success(@[]);
+}
+
+- (void)locationManager:(CLLocationManager *)manager didUpdateToLocation:(CLLocation *)newLocation fromLocation:(CLLocation *)oldLocation
+{
+    CLLocation *currentLocation = newLocation;
+
+    if (currentLocation != nil) {
+        self.clFloor = currentLocation.floor;
+    }
+
 }
 
 RCT_EXPORT_METHOD(stopWatchPosition:(RCTResponseSenderBlock)success failure:(RCTResponseSenderBlock)failure)
